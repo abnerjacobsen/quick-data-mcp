@@ -24,7 +24,7 @@ username: ${{ github.actor }}
 
 password: ${{ secrets.GITHUB_TOKEN }}
 
-- name: Build the quick-data-mcp Docker image
+
 
 run: |
 
