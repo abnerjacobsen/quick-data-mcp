@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+RUN npm install -g supergateway
+
+EXPOSE 8000
+
+RUN apk add --no-cache python3 coreutils
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Create app directory
+WORKDIR /app
+COPY quick-data-mcp/ /app
+RUN uv sync
+
+ENTRYPOINT ["supergateway"]
+
+CMD ["--port", "8000", "--baseUrl", "/quick-data-mcp", "--stdio", "uv --directory /app run python main.py"]
+
