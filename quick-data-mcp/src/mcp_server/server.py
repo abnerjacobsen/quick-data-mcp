@@ -1,13 +1,20 @@
 """Main MCP server implementation with analytics tools, resources, and prompts."""
 
-from mcp.server import FastMCP
+from fastmcp import FastMCP
 from .config.settings import settings
 from .models.schemas import ChartConfig
 from . import tools
 from .resources import data_resources
 from .prompts import (
-    dataset_first_look, segmentation_workshop, data_quality_assessment, correlation_investigation,
-    pattern_discovery_session, insight_generation_workshop, dashboard_design_consultation, find_datasources, list_mcp_assets
+    dataset_first_look,
+    segmentation_workshop,
+    data_quality_assessment,
+    correlation_investigation,
+    pattern_discovery_session,
+    insight_generation_workshop,
+    dashboard_design_consultation,
+    find_datasources,
+    list_mcp_assets,
 )
 from typing import List, Optional, Dict, Any
 
@@ -15,8 +22,9 @@ from typing import List, Optional, Dict, Any
 # Create the FastMCP server instance
 mcp = FastMCP(
     name=settings.server_name,
-    version=settings.version,
-    dependencies=["pydantic>=2.0.0", "pandas>=2.2.3", "plotly>=6.1.2"]
+    host="0.0.0.0",
+    port=8000,
+    stateless_http=True
 )
 
 
@@ -24,8 +32,11 @@ mcp = FastMCP(
 # ANALYTICS TOOLS - Pandas-powered data analysis functions
 # ============================================================================
 
+
 @mcp.tool()
-async def load_dataset(file_path: str, dataset_name: str, sample_size: Optional[int] = None) -> dict:
+async def load_dataset(
+    file_path: str, dataset_name: str, sample_size: Optional[int] = None
+) -> dict:
     """Load any JSON/CSV dataset into memory with automatic schema discovery."""
     return await tools.load_dataset(file_path, dataset_name, sample_size)
 
@@ -38,10 +49,7 @@ async def list_loaded_datasets() -> dict:
 
 @mcp.tool()
 async def segment_by_column(
-    dataset_name: str, 
-    column_name: str, 
-    method: str = "auto",
-    top_n: int = 10
+    dataset_name: str, column_name: str, method: str = "auto", top_n: int = 10
 ) -> dict:
     """Generic segmentation that works on any categorical column."""
     return await tools.segment_by_column(dataset_name, column_name, method, top_n)
@@ -49,9 +57,7 @@ async def segment_by_column(
 
 @mcp.tool()
 async def find_correlations(
-    dataset_name: str, 
-    columns: Optional[List[str]] = None,
-    threshold: float = 0.3
+    dataset_name: str, columns: Optional[List[str]] = None, threshold: float = 0.3
 ) -> dict:
     """Find correlations between numerical columns."""
     return await tools.find_correlations(dataset_name, columns, threshold)
@@ -65,7 +71,7 @@ async def create_chart(
     y_column: Optional[str] = None,
     groupby_column: Optional[str] = None,
     title: Optional[str] = None,
-    save_path: Optional[str] = None
+    save_path: Optional[str] = None,
 ) -> dict:
     """Create generic charts that adapt to any dataset."""
     return await tools.create_chart(
@@ -81,9 +87,7 @@ async def analyze_distributions(dataset_name: str, column_name: str) -> dict:
 
 @mcp.tool()
 async def detect_outliers(
-    dataset_name: str, 
-    columns: Optional[List[str]] = None,
-    method: str = "iqr"
+    dataset_name: str, columns: Optional[List[str]] = None, method: str = "iqr"
 ) -> dict:
     """Detect outliers using configurable methods."""
     return await tools.detect_outliers(dataset_name, columns, method)
@@ -91,13 +95,12 @@ async def detect_outliers(
 
 @mcp.tool()
 async def time_series_analysis(
-    dataset_name: str, 
-    date_column: str, 
-    value_column: str,
-    frequency: str = "auto"
+    dataset_name: str, date_column: str, value_column: str, frequency: str = "auto"
 ) -> dict:
     """Temporal analysis when dates are detected."""
-    return await tools.time_series_analysis(dataset_name, date_column, value_column, frequency)
+    return await tools.time_series_analysis(
+        dataset_name, date_column, value_column, frequency
+    )
 
 
 @mcp.tool()
@@ -110,6 +113,7 @@ async def suggest_analysis(dataset_name: str) -> dict:
 # ADVANCED ANALYTICS TOOLS - Data quality and advanced operations
 # ============================================================================
 
+
 @mcp.tool()
 async def validate_data_quality(dataset_name: str) -> dict:
     """Comprehensive data quality assessment."""
@@ -117,40 +121,45 @@ async def validate_data_quality(dataset_name: str) -> dict:
 
 
 @mcp.tool()
-async def compare_datasets(dataset_a: str, dataset_b: str, common_columns: Optional[List[str]] = None) -> dict:
+async def compare_datasets(
+    dataset_a: str, dataset_b: str, common_columns: Optional[List[str]] = None
+) -> dict:
     """Compare multiple datasets."""
     return await tools.compare_datasets(dataset_a, dataset_b, common_columns)
 
 
 @mcp.tool()
 async def merge_datasets(
-    dataset_configs: List[Dict[str, Any]], 
-    join_strategy: str = "inner"
+    dataset_configs: List[Dict[str, Any]], join_strategy: str = "inner"
 ) -> dict:
     """Join datasets on common keys."""
     return await tools.merge_datasets(dataset_configs, join_strategy)
 
 
 @mcp.tool()
-async def generate_dashboard(dataset_name: str, chart_configs: List[Dict[str, Any]]) -> dict:
+async def generate_dashboard(
+    dataset_name: str, chart_configs: List[Dict[str, Any]]
+) -> dict:
     """Generate multi-chart dashboards from any data."""
     return await tools.generate_dashboard(dataset_name, chart_configs)
 
 
 @mcp.tool()
-async def export_insights(dataset_name: str, format: str = "json", include_charts: bool = False) -> dict:
+async def export_insights(
+    dataset_name: str, format: str = "json", include_charts: bool = False
+) -> dict:
     """Export analysis in multiple formats."""
     return await tools.export_insights(dataset_name, format, include_charts)
 
 
 @mcp.tool()
 async def calculate_feature_importance(
-    dataset_name: str, 
-    target_column: str, 
-    feature_columns: Optional[List[str]] = None
+    dataset_name: str, target_column: str, feature_columns: Optional[List[str]] = None
 ) -> dict:
     """Calculate feature importance for predictive modeling."""
-    return await tools.calculate_feature_importance(dataset_name, target_column, feature_columns)
+    return await tools.calculate_feature_importance(
+        dataset_name, target_column, feature_columns
+    )
 
 
 @mcp.tool()
@@ -163,16 +172,16 @@ async def memory_optimization_report(dataset_name: str) -> dict:
 async def execute_custom_analytics_code(dataset_name: str, python_code: str) -> str:
     """
     Execute custom Python code against a loaded dataset and return the output.
-    
+
     IMPORTANT FOR AGENTS:
     - The dataset will be available as 'df' (pandas DataFrame) in your code
     - Libraries pre-imported: pandas as pd, numpy as np, plotly.express as px
     - To see results, you MUST print() them - only stdout output is returned
     - Any errors will be captured and returned so you can fix your code
     - Code runs in isolated subprocess with 30 second timeout
-    
+
     USAGE EXAMPLES:
-    
+
     Basic analysis:
     ```python
     print("Dataset shape:", df.shape)
@@ -180,7 +189,7 @@ async def execute_custom_analytics_code(dataset_name: str, python_code: str) -> 
     print("Summary stats:")
     print(df.describe())
     ```
-    
+
     Custom calculations:
     ```python
     # Calculate customer metrics
@@ -190,7 +199,7 @@ async def execute_custom_analytics_code(dataset_name: str, python_code: str) -> 
     print("Top 5 customers by total value:")
     print(customer_stats.sort_values(('order_value', 'sum'), ascending=False).head())
     ```
-    
+
     Data analysis:
     ```python
     # Find correlations
@@ -198,18 +207,18 @@ async def execute_custom_analytics_code(dataset_name: str, python_code: str) -> 
     correlations = df[numeric_cols].corr()
     print("Correlation matrix:")
     print(correlations)
-    
+
     # Custom insights
     if 'sales' in df.columns and 'date' in df.columns:
         monthly_sales = df.groupby(pd.to_datetime(df['date']).dt.to_period('M'))['sales'].sum()
         print("Monthly sales trend:")
         print(monthly_sales)
     ```
-    
+
     Args:
         dataset_name: Name of the loaded dataset to analyze
         python_code: Python code to execute (must print() results to see output)
-        
+
     Returns:
         str: Combined stdout and stderr output from code execution
     """
@@ -220,10 +229,12 @@ async def execute_custom_analytics_code(dataset_name: str, python_code: str) -> 
 # DATASET MANAGEMENT TOOLS
 # ============================================================================
 
+
 @mcp.tool()
 async def clear_dataset(dataset_name: str) -> dict:
     """Remove dataset from memory."""
     from .models.schemas import DatasetManager
+
     return DatasetManager.clear_dataset(dataset_name)
 
 
@@ -231,6 +242,7 @@ async def clear_dataset(dataset_name: str) -> dict:
 async def clear_all_datasets() -> dict:
     """Clear all datasets from memory."""
     from .models.schemas import DatasetManager
+
     return DatasetManager.clear_all_datasets()
 
 
@@ -238,6 +250,7 @@ async def clear_all_datasets() -> dict:
 async def get_dataset_info(dataset_name: str) -> dict:
     """Get basic info about loaded dataset."""
     from .models.schemas import DatasetManager
+
     try:
         return DatasetManager.get_dataset_info(dataset_name)
     except ValueError as e:
@@ -247,6 +260,7 @@ async def get_dataset_info(dataset_name: str) -> dict:
 # ============================================================================
 # ANALYTICS RESOURCES - Dynamic data context
 # ============================================================================
+
 
 @mcp.resource("datasets://loaded")
 async def get_loaded_datasets_resource() -> dict:
@@ -306,6 +320,7 @@ async def get_memory_usage() -> dict:
 # ANALYTICS PROMPTS - Adaptive conversation starters
 # ============================================================================
 
+
 @mcp.prompt()
 async def dataset_first_look_prompt(dataset_name: str) -> str:
     """Guide initial exploration of any new dataset."""
@@ -337,13 +352,17 @@ async def pattern_discovery_session_prompt(dataset_name: str) -> str:
 
 
 @mcp.prompt()
-async def insight_generation_workshop_prompt(dataset_name: str, business_context: str = "general") -> str:
+async def insight_generation_workshop_prompt(
+    dataset_name: str, business_context: str = "general"
+) -> str:
     """Generate business insights."""
     return await insight_generation_workshop(dataset_name, business_context)
 
 
 @mcp.prompt()
-async def dashboard_design_consultation_prompt(dataset_name: str, audience: str = "general") -> str:
+async def dashboard_design_consultation_prompt(
+    dataset_name: str, audience: str = "general"
+) -> str:
     """Plan dashboards for specific audiences."""
     return await dashboard_design_consultation(dataset_name, audience)
 
@@ -363,6 +382,7 @@ async def list_mcp_assets_prompt() -> str:
 # ============================================================================
 # LEGACY RESOURCES - Kept for backward compatibility
 # ============================================================================
+
 
 @mcp.resource("config://server")
 async def get_server_config() -> dict:
@@ -385,6 +405,7 @@ async def get_system_status() -> dict:
 # ============================================================================
 # RESOURCE MIRROR TOOLS - Tool versions of resources for tool-only MCP clients
 # ============================================================================
+
 
 @mcp.tool()
 async def resource_datasets_loaded() -> dict:
@@ -458,12 +479,18 @@ async def resource_system_status() -> dict:
     return await data_resources.get_system_status()
 
 
-
-
 def get_server():
     """Get the MCP server instance."""
     return mcp
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="streamable-http")
+    # mcp.run(
+    #     transport="streamable-http",
+    #     host="0.0.0.0",
+    #     port=8000,
+    #     log_level="DEBUG",
+    #     debug=True,
+    #     streamable_http_path="/http"
+    # )
