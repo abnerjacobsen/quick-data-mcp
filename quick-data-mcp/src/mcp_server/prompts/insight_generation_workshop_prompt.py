@@ -1,133 +1,69 @@
-"""Insight generation workshop prompt implementation."""
+"""
+Prompt-generating function for an insight generation workshop.
 
-from typing import List, Optional
-from ..models.schemas import DatasetManager, dataset_schemas
+This module provides a function that creates a detailed, context-aware prompt
+to help a user or AI run a workshop-style analysis to derive business insights
+from a dataset.
+"""
+
+from typing import Optional
+from ..models.schemas import dataset_schemas
 
 
-async def insight_generation_workshop(dataset_name: str, business_context: str = "general") -> str:
-    """Generate business insights from data analysis."""
+async def insight_generation_workshop(
+    dataset_name: str,
+    business_context: Optional[str] = "general"
+) -> str:
+    """
+    Generates a detailed prompt to guide an insight generation workshop.
+
+    This function creates a markdown-formatted prompt that provides a framework
+    for translating data analysis into actionable business insights. It tailors
+    its suggestions based on the provided business context (e.g., 'sales', 'marketing').
+
+    Args:
+        dataset_name (str): The name of the loaded dataset to analyze.
+        business_context (Optional[str]): The business context for the analysis,
+                                          which helps tailor the suggestions.
+                                          Defaults to "general".
+
+    Returns:
+        str: A markdown-formatted string containing the guided prompt.
+             Returns an error message if the dataset is not found.
+    """
     try:
         if dataset_name not in dataset_schemas:
-            return f"Dataset '{dataset_name}' not loaded. Use load_dataset() tool first."
+            return f"**Error**: Dataset '{dataset_name}' not found. Please load it first."
         
         schema = dataset_schemas[dataset_name]
-        
-        prompt = f"""💡 **Business Insights Workshop: {dataset_name}**
 
-Context: **{business_context}** analysis
+        prompt = f"### Insight Generation Workshop for '{dataset_name}'\n\n"
+        prompt += f"**Business Context:** {business_context.title()}\n\n"
+        prompt += "Let's turn data into actionable insights! Here is a framework to guide our workshop.\n\n"
 
-Let's transform your **{schema.row_count:,} records** into actionable business insights! 
+        prompt += "**1. Define Key Business Questions:**\n"
+        prompt += f"- Based on a '{business_context}' context, what are we trying to achieve?\n"
+        prompt += "- Which columns in your dataset are the most important Key Performance Indicators (KPIs)?\n\n"
 
-**🎯 Insight generation framework:**
+        prompt += "**2. Analysis & Pattern Discovery:**\n"
+        prompt += "Let's find meaningful patterns. Here are some ideas:\n"
+        prompt += f"- `/suggest_analysis dataset_name:'{dataset_name}'` - Get AI-powered suggestions.\n"
+        prompt += f"- `/segment_by_column ...` - Compare performance across different segments.\n"
+        prompt += f"- `/find_correlations ...` - Discover unexpected relationships.\n\n"
 
-**Phase 1: Data Understanding**
-• What does each variable represent in your business?
-• Which metrics matter most for decision-making?
-• What questions are stakeholders asking?
+        prompt += "**3. Synthesize & Recommend:**\n"
+        prompt += "Once we find a pattern, we need to ask:\n"
+        prompt += "- **So what?** Why does this pattern matter to the business?\n"
+        prompt += "- **Now what?** What specific action can we take based on this insight?\n\n"
 
-**Phase 2: Pattern Analysis**
-• `suggest_analysis('{dataset_name}')` - Get AI-powered analysis recommendations
-• Run suggested analyses to uncover patterns
-• Focus on business-relevant relationships
+        prompt += "**Example for a 'Sales' context:**\n"
+        prompt += "- **Finding:** `Sales in Region 'A' are 50% lower than in 'B'.`\n"
+        prompt += "- **Insight (So what?):** `We are missing a major market opportunity in Region 'A'.`\n"
+        prompt += "- **Recommendation (Now what?):** `Launch a targeted marketing campaign in Region 'A'.`\n\n"
 
-**Phase 3: Insight Synthesis**
-• Translate statistical findings into business language
-• Identify actionable opportunities
-• Quantify potential business impact
-
-**📊 Business insight categories:**
-
-**Performance Insights** - How are we doing?
-• Identify top/bottom performers
-• Measure efficiency and effectiveness
-• Track progress against goals
-
-**Segmentation Insights** - Who are our different groups?
-• Customer/product/regional segments
-• Behavioral patterns and preferences
-• Market opportunities by segment
-
-**Predictive Insights** - What's likely to happen?
-• Trend analysis and forecasting
-• Risk identification
-• Opportunity prediction
-
-**Optimization Insights** - How can we improve?
-• Resource allocation opportunities
-• Process improvement areas
-• Strategy refinement suggestions
-
-**🔍 Context-specific analysis for {business_context}:**
-"""
-        
-        # Add context-specific suggestions
-        if business_context.lower() in ['sales', 'revenue', 'ecommerce']:
-            prompt += """
-• **Sales Performance**: Analyze conversion rates, deal sizes, seasonal patterns
-• **Customer Behavior**: Purchase frequency, preferences, lifetime value
-• **Channel Effectiveness**: Performance by sales channel or region
-• **Product Insights**: Best/worst performers, cross-selling opportunities"""
-            
-        elif business_context.lower() in ['marketing', 'campaign', 'advertising']:
-            prompt += """
-• **Campaign Performance**: ROI, engagement rates, conversion metrics
-• **Audience Segmentation**: Demographics, behavior, response patterns
-• **Channel Analysis**: Most effective marketing channels and timing
-• **Content Insights**: What messaging/content drives best results"""
-            
-        elif business_context.lower() in ['operations', 'process', 'efficiency']:
-            prompt += """
-• **Process Efficiency**: Bottlenecks, cycle times, resource utilization
-• **Quality Metrics**: Error rates, compliance, consistency
-• **Resource Optimization**: Capacity planning, cost reduction opportunities
-• **Performance Trends**: Improving or declining operational metrics"""
-            
-        elif business_context.lower() in ['hr', 'employee', 'workforce']:
-            prompt += """
-• **Workforce Analytics**: Productivity, satisfaction, retention patterns
-• **Performance Management**: Top performers, skill gaps, development needs
-• **Engagement Insights**: What drives employee satisfaction and retention
-• **Organizational Health**: Diversity, growth, cultural indicators"""
-            
-        else:
-            prompt += """
-• **Key Performance Indicators**: Identify and track most important metrics
-• **Trend Analysis**: Understanding directional changes over time
-• **Comparative Analysis**: Benchmarking against targets or competitors
-• **Root Cause Analysis**: Understanding drivers of performance"""
-        
-        prompt += f"""
-
-**🚀 Insight generation workflow:**
-
-1. **Explore the data landscape**
-   → `dataset_first_look('{dataset_name}')` - Understand what you have
-
-2. **Run targeted analyses**
-   → Focus on business-critical variables and relationships
-
-3. **Create compelling visualizations**
-   → `create_chart()` with business-relevant comparisons
-
-4. **Generate actionable recommendations**
-   → `export_insights('{dataset_name}', 'html')` - Create business report
-
-**💼 Questions to drive insight generation:**
-• What decisions do you need to make based on this data?
-• Which patterns would surprise your stakeholders?
-• What actions could you take if you knew X about your data?
-• How can these insights drive measurable business value?
-
-**🎯 Ready to generate insights?**
-
-Start by telling me:
-1. What specific business questions are you trying to answer?
-2. Which variables in your dataset are most business-critical?
-3. What decisions or actions might result from your analysis?
-
-Let's turn your data into business intelligence that drives results!"""
+        prompt += "**Let's begin! What is the primary goal of your analysis today?**"
         
         return prompt
         
     except Exception as e:
-        return f"Error generating insight workshop prompt: {str(e)}"
+        return f"**Error**: An unexpected error occurred while generating the prompt: {e}"

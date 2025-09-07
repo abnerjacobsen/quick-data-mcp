@@ -1,4 +1,15 @@
-"""Tools package."""
+"""
+Tools Package for the Generic Data Analytics MCP Server.
+
+This package aggregates all the individual analytics and data manipulation tools
+from the various modules in this directory. By importing them here, they can be
+easily accessed from the main server file via the `tools` namespace.
+
+The tools are organized into logical groups:
+- Analytics Tools: High-level analyses and data quality checks.
+- Pandas Tools: Core data manipulation, loading, and exploration functions
+  powered by the pandas library.
+"""
 
 # Import modules for grouped access
 from . import pandas_tools

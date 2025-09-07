@@ -1,146 +1,94 @@
-"""Insights export tool implementation."""
+"""
+Tool for exporting a summary of dataset insights to a file.
+
+This tool generates a report containing key insights about a dataset—such as
+its shape, data quality metrics, and schema summary—and exports it to a file
+in various formats (JSON, CSV, HTML).
+"""
 
 import pandas as pd
-import numpy as np
-from typing import List, Dict, Any, Optional
+import json
 from datetime import datetime
 from pathlib import Path
-from ..models.schemas import DatasetManager, loaded_datasets, dataset_schemas
+from typing import Dict
+from ..models.schemas import DatasetManager, dataset_schemas
 
 
-async def export_insights(dataset_name: str, format: str = "json", include_charts: bool = False) -> dict:
-    """Export analysis in multiple formats."""
+async def export_insights(
+    dataset_name: str,
+    format: str = "json",
+    include_charts: bool = False
+) -> Dict:
+    """
+    Generates and exports a summary of insights for a dataset to a file.
+
+    The insights report includes dataset info, schema summary, data quality
+    metrics, and statistical summaries for numerical and categorical columns.
+
+    Args:
+        dataset_name (str): The name of the loaded dataset to export insights for.
+        format (str): The format to export the insights in. Supported formats:
+                      'json', 'csv', 'html'. Defaults to 'json'.
+        include_charts (bool): If True, attempts to include charts in the export.
+                               (Currently not implemented). Defaults to False.
+
+    Returns:
+        Dict: A dictionary containing the status of the export and the path to
+              the created file. If an error occurs, the dictionary will contain
+              an 'error' key.
+    """
     try:
-        if dataset_name not in loaded_datasets:
-            return {"error": f"Dataset '{dataset_name}' not loaded"}
-        
         df = DatasetManager.get_dataset(dataset_name)
         schema = dataset_schemas[dataset_name]
         
-        # Generate comprehensive insights
         insights = {
             "dataset_name": dataset_name,
             "export_timestamp": datetime.now().isoformat(),
             "dataset_info": {
-                "shape": df.shape,
+                "rows": df.shape[0],
+                "columns": df.shape[1],
                 "memory_usage_mb": round(df.memory_usage(deep=True).sum() / 1024**2, 2),
-                "columns": list(df.columns)
             },
             "schema_summary": {
-                "numerical_columns": len([c for c, info in schema.columns.items() if info.suggested_role == 'numerical']),
-                "categorical_columns": len([c for c, info in schema.columns.items() if info.suggested_role == 'categorical']),
-                "temporal_columns": len([c for c, info in schema.columns.items() if info.suggested_role == 'temporal']),
-                "identifier_columns": len([c for c, info in schema.columns.items() if info.suggested_role == 'identifier'])
+                "numerical_columns": sum(1 for c in schema.columns.values() if c.suggested_role == 'numerical'),
+                "categorical_columns": sum(1 for c in schema.columns.values() if c.suggested_role == 'categorical'),
+                "temporal_columns": sum(1 for c in schema.columns.values() if c.suggested_role == 'temporal'),
             },
             "data_quality": {
-                "missing_data_columns": len([c for c in df.columns if df[c].isnull().any()]),
-                "duplicate_rows": df.duplicated().sum(),
-                "total_missing_values": df.isnull().sum().sum()
+                "duplicate_rows": int(df.duplicated().sum()),
+                "total_missing_values": int(df.isnull().sum().sum()),
             },
-            "suggested_analyses": schema.suggested_analyses
+            "suggested_analyses": schema.suggested_analyses,
         }
         
-        # Add statistical summaries for numerical columns
-        numerical_cols = [c for c, info in schema.columns.items() if info.suggested_role == 'numerical']
-        if numerical_cols:
-            insights["numerical_summary"] = df[numerical_cols].describe().to_dict()
-        
-        # Add value counts for categorical columns
-        categorical_cols = [c for c, info in schema.columns.items() if info.suggested_role == 'categorical']
-        if categorical_cols:
-            insights["categorical_summary"] = {}
-            for col in categorical_cols[:5]:  # Limit to first 5 categorical columns
-                insights["categorical_summary"][col] = df[col].value_counts().head(10).to_dict()
-        
-        # Export in requested format
-        export_file = None
-        
+        outputs_dir = Path("outputs/reports")
+        outputs_dir.mkdir(parents=True, exist_ok=True)
+        export_file_path = outputs_dir / f"insights_{dataset_name}.{format.lower()}"
+
         if format.lower() == "json":
-            import json
-            # Create outputs/reports directory if it doesn't exist
-            outputs_dir = Path("outputs/reports")
-            outputs_dir.mkdir(parents=True, exist_ok=True)
-            export_file = outputs_dir / f"insights_{dataset_name}.json"
-            with open(export_file, 'w') as f:
+            with open(export_file_path, 'w') as f:
                 json.dump(insights, f, indent=2, default=str)
                 
         elif format.lower() == "csv":
-            # Create a summary CSV
-            # Create outputs/reports directory if it doesn't exist
-            outputs_dir = Path("outputs/reports")
-            outputs_dir.mkdir(parents=True, exist_ok=True)
-            export_file = outputs_dir / f"insights_{dataset_name}.csv"
-            
-            # Create summary rows
-            summary_data = []
-            summary_data.append(["Dataset Name", dataset_name])
-            summary_data.append(["Export Date", insights["export_timestamp"]])
-            summary_data.append(["Total Rows", df.shape[0]])
-            summary_data.append(["Total Columns", df.shape[1]])
-            summary_data.append(["Memory Usage (MB)", insights["dataset_info"]["memory_usage_mb"]])
-            summary_data.append(["Numerical Columns", insights["schema_summary"]["numerical_columns"]])
-            summary_data.append(["Categorical Columns", insights["schema_summary"]["categorical_columns"]])
-            summary_data.append(["Missing Values", insights["data_quality"]["total_missing_values"]])
-            summary_data.append(["Duplicate Rows", insights["data_quality"]["duplicate_rows"]])
-            
-            summary_df = pd.DataFrame(summary_data, columns=["Metric", "Value"])
-            summary_df.to_csv(export_file, index=False)
+            summary_list = [
+                {"metric": "Dataset Name", "value": dataset_name},
+                {"metric": "Export Date", "value": insights["export_timestamp"]},
+                {"metric": "Total Rows", "value": insights["dataset_info"]["rows"]},
+            ]
+            pd.DataFrame(summary_list).to_csv(export_file_path, index=False)
             
         elif format.lower() == "html":
-            # Create HTML report
-            # Create outputs/reports directory if it doesn't exist
-            outputs_dir = Path("outputs/reports")
-            outputs_dir.mkdir(parents=True, exist_ok=True)
-            export_file = outputs_dir / f"insights_{dataset_name}.html"
-            
-            html_content = f"""
-            <html>
-            <head><title>Data Insights: {dataset_name}</title></head>
-            <body>
-                <h1>Data Analysis Report: {dataset_name}</h1>
-                <h2>Dataset Overview</h2>
-                <ul>
-                    <li>Rows: {df.shape[0]:,}</li>
-                    <li>Columns: {df.shape[1]}</li>
-                    <li>Memory Usage: {insights['dataset_info']['memory_usage_mb']} MB</li>
-                </ul>
-                
-                <h2>Column Types</h2>
-                <ul>
-                    <li>Numerical: {insights['schema_summary']['numerical_columns']}</li>
-                    <li>Categorical: {insights['schema_summary']['categorical_columns']}</li>
-                    <li>Temporal: {insights['schema_summary']['temporal_columns']}</li>
-                    <li>Identifier: {insights['schema_summary']['identifier_columns']}</li>
-                </ul>
-                
-                <h2>Data Quality</h2>
-                <ul>
-                    <li>Missing Values: {insights['data_quality']['total_missing_values']}</li>
-                    <li>Duplicate Rows: {insights['data_quality']['duplicate_rows']}</li>
-                </ul>
-                
-                <h2>Suggested Analyses</h2>
-                <ul>
-                    {''.join([f'<li>{analysis}</li>' for analysis in schema.suggested_analyses])}
-                </ul>
-            </body>
-            </html>
-            """
-            
-            with open(export_file, 'w') as f:
+            html_content = f"<h1>Insights for {dataset_name}</h1>"
+            html_content += pd.DataFrame.from_dict(insights, orient='index').to_html()
+            with open(export_file_path, 'w') as f:
                 f.write(html_content)
         else:
-            return {"error": f"Unsupported export format: {format}. Use 'json', 'csv', or 'html'"}
+            return {"error": f"Unsupported export format: '{format}'. Use 'json', 'csv', or 'html'."}
         
         return {
             "dataset": dataset_name,
             "export_format": format,
-            "export_file": export_file,
-            "insights_summary": {
-                "total_metrics": len(insights),
-                "has_numerical_summary": "numerical_summary" in insights,
-                "has_categorical_summary": "categorical_summary" in insights
-            },
+            "export_file": str(export_file_path.resolve()),
             "status": "success"
         }
         

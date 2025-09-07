@@ -1,107 +1,189 @@
-# MCP From Zero: Quick Data
-> Purpose: Learn to build Powerful Model Context Protocol (MCP) servers by scaling tools into reusable agentic workflows (ADWs aka Prompts w/tools).
+# Generic Data Analytics MCP Server
 
-## Quick-Data
-> Quick-Data is a MCP server that gives your agent arbitrary data analysis on .json and .csv files.
->
-> We use quick-data as a concrete use case to experiment with the MCP Server elements specifically: Prompts > Tools > Resources.
->
-> See [quick-data-mcp](quick-data-mcp/README.md) for details on the MCP server
+This repository provides a powerful and flexible Model Context Protocol (MCP) server designed for generic data analysis. It can ingest any structured dataset (JSON or CSV) and transform it into an intelligent, AI-guided analytics workflow. The server is built with a modular architecture and a dataset-agnostic design, meaning it automatically adapts to your data without requiring hardcoded schemas.
+
+This project serves as a comprehensive example of how to build a robust MCP server, demonstrating best practices in organizing tools, resources, and prompts.
 
 <img src="./images/mcp-server-prompts.png" alt="MCP Server Prompts" style="max-width: 800px;">
 
-## Leading Questions
+## ✨ Features
 
-We experiment with three leading questions:
+- **Universal Data Compatibility**: Works with any JSON/CSV dataset out of the box.
+- **Automatic Schema Discovery**: Intelligently infers column types (numerical, categorical, temporal, identifier) without manual configuration.
+- **Rich Analytics Toolkit**: Comes with a comprehensive suite of tools for data cleaning, analysis, and visualization.
+- **AI-Guided Workflows**: Utilizes adaptive prompts to guide users through complex analysis tasks.
+- **Modular Architecture**: Clean separation of concerns between tools, resources, prompts, and data models makes the server easy to extend and maintain.
+- **Tool-Only Client Support**: Includes resource mirror tools to ensure compatibility with all MCP clients.
+- **Memory-Aware**: Provides tools for monitoring and optimizing memory usage.
 
-1. How can we MAXIMIZE the value of custom built MCP servers by using tools, resources, and prompts TOGETHER?
-2. What's the BEST codebase architecture for building MCP servers?
-3. Can we build an agentic workflow (prompt w/tools) that can be used to rapidly build MCP servers?
+## 🚀 Getting Started
 
-## Understanding MCP Components
+Follow these steps to get the server up and running in minutes.
 
-MCP servers have three main building blocks that extend what AI models can do:
-
-### Tools
-**What**: Functions that AI models can call to perform actions.
-
-**When to use**: When you want the AI to DO something at a low to mid atomic level based on your domain specific use cases.
-
-**Example**:
-```python
-@mcp.tool()
-async def create_task(title: str, description: str) -> dict:
-    """Create a new task."""
-    # AI can call this to actually create tasks
-    return {"id": "123", "title": title, "status": "created"}
+### 1. Navigate to the Project Directory
+```bash
+cd quick-data-mcp/
 ```
 
-### Resources
-**What**: Data that AI models can read and access.
+### 2. Configure for Your MCP Client
+You need to create a `.mcp.json` file to tell your MCP client how to run the server. A sample is provided.
 
-**When to use**: When you want the AI to READ information - user profiles, configuration, status, or any data source.
-
-**Example**:
-```python
-@mcp.resource("users://{user_id}/profile")
-async def get_user_profile(user_id: str) -> dict:
-    """Get user profile by ID."""
-    # AI can read this data to understand users
-    return {"id": user_id, "name": "John", "role": "developer"}
+```bash
+# Copy the sample configuration
+cp .mcp.json.sample .mcp.json
 ```
 
-### Prompts
-**What**: Pre-built conversation templates that start specific types of discussions.
+Next, you need to **edit `.mcp.json`** and replace the placeholder paths with the absolute paths on your system.
 
-**When to use**: When you want to give the AI structured starting points for common, repeatable workflows for your domain specific use cases.
+- `"command"`: Update this with the path to your `uv` executable. You can find this by running `which uv`.
+- `"--directory"`: Update this with the absolute path to the `quick-data-mcp` directory. You can find this by running `pwd` from within the directory.
 
-**Example**:
-```python
-@mcp.prompt()
-async def code_review(code: str) -> str:
-    """Start a code review conversation."""
-    # AI gets a structured template for code reviews
-    return f"Review this code for security and performance:\n{code}"
+Here is an example of a configured `.mcp.json`:
+```json
+{
+  "mcpServers": {
+    "quick-data": {
+      "command": "/Users/your_username/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/Users/your_username/projects/quick-data-mcp",
+        "run",
+        "python",
+        "main.py"
+      ],
+      "env": {
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
 ```
 
-## Quick Decision Guide
+### 3. Run the Server
+Once your configuration is set, you can start the server with your MCP client or test it directly from the command line:
 
-- **Need AI to take action?** → Use **Tools**
-- **Need AI to read data?** → Use **Resources**  
-- **Need Reusable Agentic Workflows (ADWs)?** → Use **Prompts**
+```bash
+# This command will start the server on http://0.0.0.0:8000
+uv run python main.py
+```
 
-## Quick Setup
+## 🤖 How to Use
 
-To use the Quick Data MCP server:
+Once the server is running, the best way to start is by asking for a list of all its capabilities.
 
-1. **Navigate to the MCP server directory**:
-   ```bash
-   cd quick-data-mcp/
-   ```
+In your MCP client (like Claude Code), run the following prompt:
+```
+/quick-data:list_mcp_assets_prompt
+```
+This will return a complete, formatted list of all available prompts, tools, and resources, giving you a full menu of what you can do next.
 
-2. **Configure for your MCP client**:
-   ```bash
-   # Copy the sample configuration
-   cp .mcp.json.sample .mcp.json
-   
-   # Edit .mcp.json and update the --directory path to your absolute path
-   # Example: "/Users/yourusername/path/to/quick-data-mcp"
-   ```
+### Example Workflow
 
-3. **Test the server**:
-   ```bash
-   uv run python main.py
-   ```
+1.  **Find your data**:
+    ```
+    /quick-data:find_datasources_prompt
+    ```
+2.  **Load a dataset**:
+    ```
+    /quick-data:load_dataset file_path:'data/ecommerce_orders.json' dataset_name:'sales'
+    ```
+3.  **Get a first look**:
+    ```
+    /quick-data:dataset_first_look_prompt dataset_name:'sales'
+    ```
+4.  **Run a suggested analysis**:
+    ```
+    /quick-data:find_correlations dataset_name:'sales'
+    ```
+5.  **Visualize the results**:
+    ```
+    /quick-data:create_chart dataset_name:'sales' chart_type:'scatter' x_column:'order_value' y_column:'customer_age'
+    ```
 
-See [quick-data-mcp/README.md](quick-data-mcp/README.md) for complete setup and usage documentation.
+## 🛠️ Capabilities
 
-## Resources
-- MCP Clients: https://modelcontextprotocol.io/clients
-- Claude Code Resource Support Github Issue: https://github.com/anthropics/claude-code/issuesç/545
+The server comes with a rich set of prompts, tools, and resources.
 
-## Master AI Coding
-Learn to code with AI with foundational [Principles of AI Coding](https://agenticengineer.com/principled-ai-coding?y=jprompt)
+### 📝 Prompts
+Guided workflows to help you with common analysis tasks.
 
-Follow the [IndyDevDan youtube channel](https://www.youtube.com/@indydevdan) for more AI coding tips and tricks.
+- **/dataset_first_look**: Get a quick overview and suggested starting points for a dataset.
+- **/segmentation_workshop**: Plan a strategy for segmenting your data.
+- **/data_quality_assessment**: Start a systematic review of your data's quality.
+- **/correlation_investigation**: Get a guided workflow for finding relationships in your data.
+- **/insight_generation_workshop**: A guided session to turn data findings into business insights.
+- **/dashboard_design_consultation**: Plan a dashboard tailored to a specific audience.
+- **/find_datasources**: Discover available `.csv` and `.json` files in your project directory.
+- **/list_mcp_assets**: See a complete list of all server capabilities.
 
-Use the best Agentic Coding Tool: [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+### 🔧 Tools
+Functions for performing specific actions like data manipulation, analysis, and visualization.
+
+#### Data Management
+- **/load_dataset**: Loads a dataset from a JSON or CSV file into memory.
+- **/list_loaded_datasets**: Shows a summary of all datasets currently loaded.
+- **/clear_dataset**: Removes a specific dataset from memory.
+- **/clear_all_datasets**: Removes all datasets from memory.
+
+#### Core Analytics
+- **/suggest_analysis**: Suggests relevant analysis tools based on the dataset's schema.
+- **/analyze_distributions**: Analyzes the statistical distribution of a single column.
+- **/find_correlations**: Finds correlations between numerical columns.
+- **/segment_by_column**: Segments the data by a categorical column and calculates statistics.
+- **/detect_outliers**: Detects outliers in numerical columns using IQR or Z-score methods.
+- **/time_series_analysis**: Performs a basic time series analysis.
+- **/validate_data_quality**: Performs a comprehensive data quality assessment.
+
+#### Advanced Operations & I/O
+- **/compare_datasets**: Performs a side-by-side comparison of two datasets.
+- **/merge_datasets**: Merges multiple datasets on a common column.
+- **/calculate_feature_importance**: Calculates feature importance based on correlation.
+- **/memory_optimization_report**: Analyzes memory usage and suggests optimizations.
+- **/execute_custom_analytics_code**: Executes custom Python code in an isolated environment.
+- **/create_chart**: Creates a chart (histogram, bar, scatter, etc.) and saves it as HTML.
+- **/generate_dashboard**: Generates a set of charts for a dashboard.
+- **/export_insights**: Exports a summary of dataset insights to a file (JSON, CSV, HTML).
+
+### 📊 Resources
+Read-only endpoints that provide real-time information about the server and data.
+
+- `datasets://loaded`: A list of all currently loaded datasets.
+- `datasets://{dataset_name}/schema`: The dynamically discovered schema of a dataset.
+- `datasets://{dataset_name}/summary`: A statistical summary of a dataset's numerical columns.
+- `datasets://{dataset_name}/sample`: A small sample of rows for data preview.
+- `analytics://current_dataset`: The name of the most recently loaded dataset.
+- `analytics://available_analyses`: A list of analysis types applicable to the current dataset.
+- `analytics://column_types`: The inferred role for each column in a dataset.
+- `analytics://suggested_insights`: A list of suggested next analysis steps.
+- `analytics://memory_usage`: The total memory usage of all loaded datasets.
+- `config://server`: The server's configuration and capabilities.
+- `system://status`: The current status and health of the server.
+
+## 🏗️ Architecture
+
+The project is organized into a clean, modular structure to promote maintainability and extensibility.
+
+```
+quick-data-mcp/
+├── .mcp.json.sample      # Sample MCP client configuration
+├── data/                   # Sample datasets for demonstration
+├── src/mcp_server/         # Core server source code
+│   ├── config/             # Server configuration settings
+│   ├── models/             # Pydantic data models and schemas
+│   ├── prompts/            # Implementations for guided prompts
+│   ├── resources/          # Implementations for data resources
+│   ├── tools/              # Implementations for analytics tools
+│   └── server.py           # Main server definition and asset registration
+├── tests/                  # Pytest test suite
+└── main.py                 # Server entry point
+```
+
+## 🧪 Testing
+
+The repository includes a comprehensive test suite. To run the tests, navigate to the `quick-data-mcp` directory and run:
+
+```bash
+uv run python -m pytest
+```
+
+This will execute all tests and provide a coverage report.

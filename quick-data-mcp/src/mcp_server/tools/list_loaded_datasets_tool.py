@@ -1,33 +1,47 @@
-"""List loaded datasets tool implementation."""
+"""
+Tool for listing all datasets currently loaded in memory.
 
-import pandas as pd
-import numpy as np
-from typing import List, Dict, Any, Optional, Union
-from ..models.schemas import DatasetManager, loaded_datasets, dataset_schemas, ChartConfig
+This tool provides a summary of all active datasets, including their names,
+dimensions (rows and columns), and memory footprint.
+"""
+
+from typing import Dict
+from ..models.schemas import DatasetManager
 
 
-async def list_loaded_datasets() -> dict:
-    """Show all datasets currently in memory."""
+async def list_loaded_datasets() -> Dict:
+    """
+    Shows a summary of all datasets currently loaded in memory.
+
+    This function retrieves the list of active datasets from the DatasetManager
+    and compiles a report including the total number of datasets and their
+    combined memory usage.
+
+    Returns:
+        Dict: A dictionary containing a list of loaded datasets with their
+              summaries, and overall totals. If an error occurs, the dictionary
+              will contain an 'error' key.
+    """
     try:
         datasets = []
         total_memory = 0
         
         for name in DatasetManager.list_datasets():
             info = DatasetManager.get_dataset_info(name)
-            memory_mb = info["memory_usage_mb"]
+            memory_mb = info.get("memory_usage_mb", 0)
             total_memory += memory_mb
             
             datasets.append({
                 "name": name,
-                "rows": info["shape"][0],
-                "columns": info["shape"][1],
-                "memory_mb": round(memory_mb, 1)
+                "rows": info.get("shape", (0, 0))[0],
+                "columns": info.get("shape", (0, 0))[1],
+                "memory_mb": round(memory_mb, 2)
             })
         
         return {
             "loaded_datasets": datasets,
             "total_datasets": len(datasets),
-            "total_memory_mb": round(total_memory, 1)
+            "total_memory_mb": round(total_memory, 2)
         }
         
     except Exception as e:

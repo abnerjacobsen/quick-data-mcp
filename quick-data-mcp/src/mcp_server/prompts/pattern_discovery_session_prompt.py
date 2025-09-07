@@ -1,89 +1,57 @@
-"""Pattern discovery session prompt implementation."""
+"""
+Prompt-generating function for a pattern discovery session.
 
-from typing import List, Optional
-from ..models.schemas import DatasetManager, dataset_schemas
+This module provides a function that creates a detailed, context-aware prompt
+to help a user or AI run an open-ended exploratory analysis to find interesting
+patterns in a dataset.
+"""
+
+from ..models.schemas import dataset_schemas
 
 
 async def pattern_discovery_session(dataset_name: str) -> str:
-    """Open-ended pattern mining conversation."""
+    """
+    Generates a detailed prompt to guide a pattern discovery session.
+
+    This function inspects the dataset's schema and generates a markdown-formatted
+    prompt that outlines different types of pattern analysis (e.g., distribution,
+    segmentation, temporal) and provides relevant tool commands to begin
+    the exploration.
+
+    Args:
+        dataset_name (str): The name of the loaded dataset to explore.
+
+    Returns:
+        str: A markdown-formatted string containing the guided prompt.
+             Returns an error message if the dataset is not found.
+    """
     try:
         if dataset_name not in dataset_schemas:
-            return f"Dataset '{dataset_name}' not loaded. Use load_dataset() tool first."
+            return f"**Error**: Dataset '{dataset_name}' not found. Please load it first."
         
         schema = dataset_schemas[dataset_name]
         
-        # Categorize columns
-        numerical_cols = [name for name, info in schema.columns.items() 
-                         if info.suggested_role == 'numerical']
-        categorical_cols = [name for name, info in schema.columns.items() 
-                           if info.suggested_role == 'categorical']
-        temporal_cols = [name for name, info in schema.columns.items() 
-                        if info.suggested_role == 'temporal']
+        num_cols = [name for name, info in schema.columns.items() if info.suggested_role == 'numerical']
+        cat_cols = [name for name, info in schema.columns.items() if info.suggested_role == 'categorical']
+
+        prompt = f"### Pattern Discovery Session for '{dataset_name}'\n\n"
+        prompt += "Let's uncover hidden patterns in your data. Here are some avenues for exploration:\n\n"
+
+        prompt += "**1. Distribution Patterns (Shape of your data):**\n"
+        prompt += "- Look for skewed distributions, multiple peaks, or gaps.\n"
+        prompt += f"- **Tool**: `/analyze_distributions dataset_name:'{dataset_name}' column_name:'{num_cols[0]}'`\n\n"
+
+        prompt += "**2. Relationship Patterns (How variables interact):**\n"
+        prompt += "- Find strong correlations between numerical variables.\n"
+        prompt += f"- **Tool**: `/find_correlations dataset_name:'{dataset_name}'`\n\n"
+
+        prompt += "**3. Segmentation Patterns (Hidden groups):**\n"
+        prompt += f"- Discover how numerical data behaves across different categories of `{cat_cols[0]}`.\n"
+        prompt += f"- **Tool**: `/segment_by_column dataset_name:'{dataset_name}' column_name:'{cat_cols[0]}'`\n\n"
         
-        prompt = f"""🔍 **Pattern Discovery Session: {dataset_name}**
+        prompt += "**Where would you like to start your search for patterns?**"
 
-Let's uncover hidden patterns and insights in your data! With **{schema.row_count:,} records** and **{len(schema.columns)} variables**, there are many potential discoveries waiting.
-
-**📊 Your data landscape:**
-• **{len(numerical_cols)} numerical variables**: Perfect for trends, distributions, and correlations
-• **{len(categorical_cols)} categorical variables**: Great for segmentation and group patterns  
-• **{len(temporal_cols)} temporal variables**: Ideal for time-based patterns and seasonality
-
-**🎯 Pattern discovery toolkit:**
-
-**1. Distribution Patterns** - Understand your data's shape
-   • `analyze_distributions('{dataset_name}', 'column_name')` - Detailed distribution analysis
-   • Look for: skewness, multiple peaks, unusual gaps, outliers
-
-**2. Relationship Patterns** - Find connections between variables"""
-        
-        if len(numerical_cols) >= 2:
-            prompt += f"""
-   • `find_correlations('{dataset_name}')` - Statistical relationships
-   • `create_chart('{dataset_name}', 'scatter', '{numerical_cols[0]}', '{numerical_cols[1]}')` - Visual relationships"""
-        
-        if categorical_cols and numerical_cols:
-            prompt += f"""
-   
-**3. Segmentation Patterns** - Discover group differences
-   • `segment_by_column('{dataset_name}', '{categorical_cols[0]}')` - Group-based analysis
-   • Look for: performance differences, size variations, behavioral patterns"""
-        
-        if temporal_cols and numerical_cols:
-            prompt += f"""
-   
-**4. Temporal Patterns** - Time-based insights
-   • `time_series_analysis('{dataset_name}', '{temporal_cols[0]}', '{numerical_cols[0]}')` - Trend analysis
-   • Look for: seasonality, cycles, growth trends, anomalies"""
-        
-        prompt += f"""
-
-**5. Quality Patterns** - Data integrity insights
-   • `validate_data_quality('{dataset_name}')` - Systematic quality assessment
-   • `detect_outliers('{dataset_name}')` - Unusual value detection
-
-**🔬 Advanced pattern hunting:**
-• **Feature importance**: `calculate_feature_importance('{dataset_name}', 'target_column')`
-• **Cross-pattern analysis**: Combine multiple discovery techniques
-• **Visual pattern exploration**: Create multiple chart types to see different perspectives
-
-**💡 Pattern discovery questions to explore:**
-• Which variables have the most unusual distributions?
-• Are there hidden subgroups in your data?
-• Do certain combinations of variables create interesting patterns?
-• Are there seasonal or cyclical patterns in time-based data?
-• Which variables are most predictive of outcomes?
-
-**🚀 Let's start discovering! Choose your exploration path:**
-1. **"Show me the most interesting distributions"** - Start with distribution analysis
-2. **"Find the strongest relationships"** - Begin with correlation analysis  
-3. **"Reveal hidden segments"** - Start with categorical segmentation
-4. **"Uncover time patterns"** - Begin with temporal analysis
-5. **"Assess data quality first"** - Start with quality assessment
-
-What patterns are you most curious about discovering in your **{dataset_name}** data?"""
-        
         return prompt
         
     except Exception as e:
-        return f"Error generating pattern discovery prompt: {str(e)}"
+        return f"**Error**: An unexpected error occurred while generating the prompt: {e}"

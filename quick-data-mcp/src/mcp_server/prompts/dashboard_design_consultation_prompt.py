@@ -1,178 +1,75 @@
-"""Dashboard design consultation prompt implementation."""
+"""
+Prompt-generating function for a dashboard design consultation.
 
-from typing import List, Optional
-from ..models.schemas import DatasetManager, dataset_schemas
+This module provides a function that creates a detailed, context-aware prompt
+to help a user or AI design a dashboard tailored to a specific audience.
+"""
+
+from typing import Optional
+from ..models.schemas import dataset_schemas
 
 
-async def dashboard_design_consultation(dataset_name: str, audience: str = "general") -> str:
-    """Plan dashboards for specific audiences."""
+async def dashboard_design_consultation(
+    dataset_name: str,
+    audience: Optional[str] = "general"
+) -> str:
+    """
+    Generates a detailed prompt to guide a dashboard design session.
+
+    This function inspects the dataset's schema to understand the available
+    data types. It then constructs a markdown-formatted string that provides
+    design principles and component recommendations tailored to the specified
+    audience (e.g., 'executive', 'analyst').
+
+    Args:
+        dataset_name (str): The name of the loaded dataset for the dashboard.
+        audience (Optional[str]): The target audience for the dashboard.
+                                  Affects the recommendations. Defaults to "general".
+
+    Returns:
+        str: A markdown-formatted string containing the guided prompt.
+             Returns an error message if the dataset is not found.
+    """
     try:
         if dataset_name not in dataset_schemas:
-            return f"Dataset '{dataset_name}' not loaded. Use load_dataset() tool first."
+            return f"**Error**: Dataset '{dataset_name}' not found. Please load it first."
         
         schema = dataset_schemas[dataset_name]
+        num_cols = [name for name, info in schema.columns.items() if info.suggested_role == 'numerical']
+        cat_cols = [name for name, info in schema.columns.items() if info.suggested_role == 'categorical']
         
-        # Analyze available data types
-        numerical_cols = [name for name, info in schema.columns.items() 
-                         if info.suggested_role == 'numerical']
-        categorical_cols = [name for name, info in schema.columns.items() 
-                           if info.suggested_role == 'categorical']
-        temporal_cols = [name for name, info in schema.columns.items() 
-                        if info.suggested_role == 'temporal']
+        prompt = f"### Dashboard Design Consultation for '{dataset_name}'\n\n"
+        prompt += f"**Audience:** {audience.title()}\n\n"
+        prompt += "Let's design an effective dashboard. Here's a plan based on your data and target audience.\n\n"
         
-        prompt = f"""📊 **Dashboard Design Consultation: {dataset_name}**
+        prompt += "**1. Available Data:**\n"
+        prompt += f"- **Measures (Numerical):** {len(num_cols)} columns like `{num_cols[0]}`.\n"
+        prompt += f"- **Dimensions (Categorical):** {len(cat_cols)} columns like `{cat_cols[0]}`.\n\n"
 
-**Target Audience**: {audience}
-
-Let's design a compelling dashboard from your **{schema.row_count:,} records** that tells a clear story!
-
-**📋 Available data for dashboards:**
-• **{len(numerical_cols)} numerical metrics**: Perfect for KPIs, trends, and comparisons
-• **{len(categorical_cols)} categorical dimensions**: Great for filtering and segmentation
-• **{len(temporal_cols)} time dimensions**: Ideal for time series and trend analysis
-
-**🎯 Dashboard design principles:**
-
-**For Executive/Leadership Audience:**
-• High-level KPIs and trend indicators
-• Exception-based reporting (what needs attention)
-• Comparative analysis (vs targets, previous periods)
-• Clean, simple visualizations with clear takeaways
-
-**For Operational/Management Audience:**
-• Detailed performance metrics
-• Drill-down capabilities by segment/category
-• Operational efficiency indicators
-• Actionable insights for daily decisions
-
-**For Analytical/Technical Audience:**
-• Comprehensive data exploration capabilities
-• Statistical analysis and correlation views
-• Raw data access and filtering options
-• Advanced visualization types
-
-**📊 Dashboard component recommendations:**
-
-**1. Key Performance Indicators (KPIs)**"""
-        
-        if numerical_cols:
-            prompt += f"""
-   • Primary metrics from: {', '.join(numerical_cols[:3])}
-   • Trend indicators and period-over-period changes
-   • Target vs actual comparisons"""
-        
-        prompt += f"""
-
-**2. Trend Analysis**"""
-        
-        if temporal_cols and numerical_cols:
-            prompt += f"""
-   • Time series charts showing {numerical_cols[0]} over {temporal_cols[0]}
-   • Seasonal patterns and growth trends
-   • Anomaly detection and highlighting"""
-        
-        prompt += f"""
-
-**3. Segmentation Views**"""
-        
-        if categorical_cols and numerical_cols:
-            prompt += f"""
-   • Performance by {categorical_cols[0]} (bar charts, tables)
-   • Comparative analysis across segments
-   • Top/bottom performer identification"""
-        
-        prompt += f"""
-
-**4. Distribution Analysis**
-   • Data quality indicators and completeness
-   • Outlier detection and unusual patterns
-   • Statistical summaries and ranges
-
-**🛠️ Dashboard creation workflow:**
-
-1. **Define dashboard objectives**
-   → What decisions should this dashboard support?
-   → What questions should it answer?
-
-2. **Create individual visualizations**
-   → `create_chart('{dataset_name}', 'chart_type', 'x_column', 'y_column')`
-   → Test different chart types for each insight
-
-3. **Build comprehensive dashboard**
-   → `generate_dashboard('{dataset_name}', chart_configs)`
-   → Combine multiple visualizations
-
-4. **Export for sharing**
-   → `export_insights('{dataset_name}', 'html')`
-   → Create shareable dashboard file
-
-**📊 Recommended chart types by purpose:**
-
-**KPI Monitoring**: Bar charts, line charts, gauge charts
-**Trend Analysis**: Line charts, area charts, sparklines  
-**Comparison**: Bar charts, grouped charts, heatmaps
-**Distribution**: Histograms, box plots, violin plots
-**Relationship**: Scatter plots, correlation matrices
-
-**🎨 Dashboard layout suggestions for {audience}:**
-"""
-        
-        if audience.lower() in ['executive', 'leadership', 'c-suite']:
-            prompt += """
-• **Top row**: 3-4 key KPIs with trend indicators
-• **Second row**: Main performance chart (trend over time)
-• **Bottom rows**: Segmentation breakdown and key insights
-• **Colors**: Minimal palette, red/green for performance indicators"""
-            
-        elif audience.lower() in ['manager', 'operational', 'team lead']:
-            prompt += """
-• **Left panel**: Filters and controls for interactivity
-• **Main area**: Primary operational metrics and trends
-• **Right panel**: Top/bottom performers and alerts
-• **Bottom**: Detailed breakdowns and drill-down options"""
-            
-        elif audience.lower() in ['analyst', 'technical', 'data team']:
-            prompt += """
-• **Full data exploration**: Multiple visualization types
-• **Statistical summaries**: Correlation matrices, distributions
-• **Interactive filters**: Full dataset slicing capabilities
-• **Export options**: Data download and analysis tools"""
-            
+        prompt += "**2. Key Questions to Answer:**\n"
+        if audience == "executive":
+            prompt += "- What are the top-level KPIs? How are they trending?\n"
+            prompt += "- Are we meeting our goals?\n"
+            prompt += "- Where are the biggest risks or opportunities?\n\n"
         else:
-            prompt += """
-• **Balanced approach**: Mix of high-level and detailed views
-• **Clear navigation**: Logical flow from summary to detail
-• **Contextual information**: Explanations and data definitions
-• **Action orientation**: Clear next steps and recommendations"""
+            prompt += f"- How does `{num_cols[0]}` vary across `{cat_cols[0]}`?\n"
+            prompt += "- What are the top segments? What are the outliers?\n"
+            prompt += "- Is there a relationship between different measures?\n\n"
+
+        prompt += "**3. Suggested Charts & Workflow:**\n"
+        prompt += "A good dashboard tells a story. Here's a suggested flow:\n"
+        prompt += "1. **High-Level KPIs**: Start with the most important numbers.\n"
+        prompt += "2. **Trend Analysis**: Show performance over time.\n"
+        prompt += "3. **Segmentation**: Break down the data by key categories.\n\n"
+
+        prompt += "**Example Commands to Build Charts:**\n"
+        prompt += f"- **KPI Bar Chart**: `/create_chart dataset_name:'{dataset_name}' chart_type:'bar' x_column:'{cat_cols[0]}' y_column:'{num_cols[0]}'`\n"
+        prompt += f"- **Relationship Scatter Plot**: `/create_chart dataset_name:'{dataset_name}' chart_type:'scatter' x_column:'{num_cols[0]}' y_column:'{num_cols[1] if len(num_cols)>1 else num_cols[0]}'`\n\n"
         
-        prompt += f"""
-
-**🚀 Let's start building your dashboard!**
-
-**Immediate next steps:**
-1. **Identify your top 3 KPIs** from available numerical columns
-2. **Choose primary segmentation** from categorical columns  
-3. **Create initial visualizations** with create_chart()
-4. **Iterate and refine** based on feedback
-
-**Quick start commands:**
-"""
-        
-        if numerical_cols and categorical_cols:
-            prompt += f"""• `create_chart('{dataset_name}', 'bar', '{categorical_cols[0]}', '{numerical_cols[0]}')` - Key metric by segment
-"""
-        if len(numerical_cols) >= 2:
-            prompt += f"""• `create_chart('{dataset_name}', 'scatter', '{numerical_cols[0]}', '{numerical_cols[1]}')` - Relationship analysis
-"""
-        if temporal_cols and numerical_cols:
-            prompt += f"""• `create_chart('{dataset_name}', 'line', '{temporal_cols[0]}', '{numerical_cols[0]}')` - Trend analysis
-"""
-        
-        prompt += f"""
-
-What type of dashboard story do you want to tell with your **{dataset_name}** data?"""
+        prompt += "**Next Step:**\n"
+        prompt += "Use the `/generate_dashboard` tool with a list of the chart configurations you design.\n"
         
         return prompt
         
     except Exception as e:
-        return f"Error generating dashboard consultation prompt: {str(e)}"
+        return f"**Error**: An unexpected error occurred while generating the prompt: {e}"

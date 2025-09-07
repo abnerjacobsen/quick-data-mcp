@@ -1,96 +1,61 @@
-"""Segmentation workshop prompt implementation."""
+"""
+Prompt-generating function for a data segmentation workshop.
 
-from typing import List, Optional
-from ..models.schemas import DatasetManager, dataset_schemas
+This module provides a function that creates a detailed, context-aware prompt
+to help a user or AI plan and execute a segmentation analysis on a dataset.
+"""
+
+from ..models.schemas import dataset_schemas
 
 
 async def segmentation_workshop(dataset_name: str) -> str:
-    """Interactive segmentation guidance based on actual dataset."""
+    """
+    Generates a detailed prompt to guide a data segmentation workshop.
+
+    This function inspects the dataset's schema to find available categorical
+    and numerical columns. It then constructs a markdown-formatted string that
+    lists the potential segmentation columns and provides a step-by-step
+    workflow with example tool commands.
+
+    Args:
+        dataset_name (str): The name of the loaded dataset to segment.
+
+    Returns:
+        str: A markdown-formatted string containing the guided prompt.
+             Returns an error message if the dataset is not found or has no
+             categorical columns for segmentation.
+    """
     try:
         if dataset_name not in dataset_schemas:
-            return f"Dataset '{dataset_name}' not loaded. Use load_dataset() tool first."
+            return f"**Error**: Dataset '{dataset_name}' not found. Please load it first."
         
         schema = dataset_schemas[dataset_name]
         
-        # Find categorical columns suitable for segmentation
-        categorical_cols = [name for name, info in schema.columns.items() 
-                           if info.suggested_role == 'categorical']
-        numerical_cols = [name for name, info in schema.columns.items() 
-                         if info.suggested_role == 'numerical']
+        cat_cols = [name for name, info in schema.columns.items() if info.suggested_role == 'categorical']
         
-        if not categorical_cols:
-            return f"""**Segmentation Challenge: No categorical columns found in {dataset_name}**
+        if not cat_cols:
+            return (f"### Segmentation Not Possible\n\n"
+                    f"The **{dataset_name}** dataset has no categorical columns, "
+                    f"which are needed to create segments. "
+                    f"Consider creating categorical features from numerical data.")
 
-Don't worry! You can still create meaningful segments:
-
-**🔢 Numerical Segmentation Options:**
-"""  + (f"""
-• **Quantile-based segments**: Split {numerical_cols[0]} into high/medium/low groups
-• **Threshold-based segments**: Above/below average {numerical_cols[0]}
-• **Custom ranges**: Define meaningful business ranges for {numerical_cols[0]}
-
-**💡 Pro tip**: Create categorical columns first using pandas:
-```python
-df['value_segment'] = pd.cut(df['{numerical_cols[0]}'], bins=3, labels=['Low', 'Medium', 'High'])
-```
-
-Then use: `segment_by_column('{dataset_name}', 'value_segment')`
-""" if numerical_cols else """
-• Consider loading additional data with categorical variables
-• Check if any text columns could be categorized
-• Create categories from existing numerical data using ranges
-""")
+        prompt = f"### Segmentation Workshop for '{dataset_name}'\n\n"
+        prompt += "Let's break down your data into meaningful groups (segments) to find insights.\n\n"
         
-        prompt = f"""Let's create meaningful segments from your **{dataset_name}** data!
+        prompt += "**Available Columns for Segmentation:**\n"
+        for col in cat_cols:
+            prompt += f"- `{col}` ({schema.columns[col].unique_values} unique values)\n"
+        
+        prompt += "\n**Suggested Workflow:**\n"
+        prompt += f"1. **Choose a Segment**: Pick a column from the list above that represents a meaningful grouping (e.g., region, product category).\n"
+        prompt += f"2. **Run Segmentation**: Use the `/segment_by_column` tool to see how numerical data differs across these groups.\n"
+        prompt += f"   - `/segment_by_column dataset_name:'{dataset_name}' column_name:'{cat_cols[0]}'`\n"
+        prompt += "3. **Visualize the Segments**: Create a bar chart to easily compare the segments.\n"
+        prompt += f"   - `/create_chart dataset_name:'{dataset_name}' chart_type:'bar' x_column:'{cat_cols[0]}'`\n\n"
+        
+        prompt += "**Which column would you like to use to segment your data?**"
 
-**Available categorical columns for grouping:**
-"""
-        
-        for col in categorical_cols:
-            col_info = schema.columns[col]
-            prompt += f"• **{col}**: {col_info.unique_values} unique values (examples: {', '.join(map(str, col_info.sample_values))})\n"
-        
-        if numerical_cols:
-            prompt += f"\n**📊 Numerical columns to analyze by segment:**\n"
-            for col in numerical_cols:
-                col_info = schema.columns[col]
-                prompt += f"• **{col}**: {col_info.dtype} (sample values: {', '.join(map(str, col_info.sample_values))})\n"
-        
-        prompt += f"""
-**🎯 Segmentation strategies:**
-
-1. **Simple segmentation**: Group by one categorical column
-   Example: `segment_by_column('{dataset_name}', '{categorical_cols[0]}')`
-
-2. **Cross-segmentation**: Combine multiple categories (manual analysis)
-   Example: Group by {categorical_cols[0]}, then analyze patterns within each group
-
-3. **Value-based segments**: Focus on high/low values of numerical columns"""
-        
-        if numerical_cols:
-            prompt += f"""
-   Example: Top 20% vs bottom 20% by {numerical_cols[0]}"""
-        
-        prompt += f"""
-
-**📈 Suggested analysis workflow:**
-1. Start with basic segmentation of your most important categorical variable
-2. Look for interesting patterns in the numerical data
-3. Create visualizations to show segment differences
-4. Dive deeper into the most interesting segments
-
-**Quick commands to try:**
-• `segment_by_column('{dataset_name}', '{categorical_cols[0] if categorical_cols else "category_column"}')`"""
-        
-        if categorical_cols and numerical_cols:
-            prompt += f"""
-• `create_chart('{dataset_name}', 'bar', '{categorical_cols[0]}', '{numerical_cols[0]}')`"""
-        
-        prompt += f"""
-
-Which segmentation approach interests you most? I can guide you through the specific analysis steps!"""
-        
         return prompt
         
     except Exception as e:
-        return f"Error generating segmentation workshop prompt: {str(e)}"
+        return f"**Error**: An unexpected error occurred while generating the prompt: {e}"

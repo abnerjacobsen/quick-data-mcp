@@ -1,14 +1,16 @@
-"""Chart creation tool implementation."""
+"""
+Tool for creating and saving a variety of charts from a dataset.
+
+This tool uses the Plotly Express library to generate common chart types like
+histograms, bar charts, scatter plots, line plots, and box plots. It can
+save the generated interactive charts as HTML files.
+"""
 
 import pandas as pd
-import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
-from plotly.offline import plot
-import json
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
-from ..models.schemas import DatasetManager, loaded_datasets, dataset_schemas, ChartConfig
+from typing import Dict, Optional
+from ..models.schemas import DatasetManager
 
 
 async def create_chart(
@@ -19,8 +21,32 @@ async def create_chart(
     groupby_column: Optional[str] = None,
     title: Optional[str] = None,
     save_path: Optional[str] = None
-) -> dict:
-    """Create generic charts that adapt to any dataset."""
+) -> Dict:
+    """
+    Creates a chart from a dataset and saves it as an HTML file.
+
+    This function supports generating 'histogram', 'bar', 'scatter', 'line',
+    and 'box' plots. It automatically handles chart titles and can group
+    data by a specified column.
+
+    Args:
+        dataset_name (str): The name of the loaded dataset to use.
+        chart_type (str): The type of chart to create. Supported types are:
+                          'histogram', 'bar', 'scatter', 'line', 'box'.
+        x_column (str): The name of the column for the x-axis.
+        y_column (Optional[str]): The name of the column for the y-axis.
+                                  Required for 'scatter' and 'line' plots.
+        groupby_column (Optional[str]): The column to use for color-based grouping.
+        title (Optional[str]): The title of the chart. If None, a title is
+                               generated automatically.
+        save_path (Optional[str]): The path to save the HTML file. If None, it
+                                   saves to 'outputs/charts/' with a generated name.
+
+    Returns:
+        Dict: A dictionary with the status of the chart creation, including the
+              path to the saved file. If an error occurs, the dictionary will
+              contain an 'error' key.
+    """
     try:
         df = DatasetManager.get_dataset(dataset_name)
         
@@ -33,7 +59,7 @@ async def create_chart(
             
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
-            return {"error": f"Columns not found: {missing_cols}"}
+            return {"error": f"Columns not found: {', '.join(missing_cols)}"}
         
         # Generate title if not provided
         if title is None:
@@ -43,78 +69,48 @@ async def create_chart(
             if groupby_column:
                 title += f" (grouped by {groupby_column})"
         
-        # Create chart based on type
         fig = None
-        chart_data = None
         
         if chart_type == "histogram":
             fig = px.histogram(df, x=x_column, color=groupby_column, title=title)
-            chart_data = df[x_column].value_counts().head(20).to_dict()
             
         elif chart_type == "bar":
-            if not y_column:
-                # Count plot
-                if groupby_column:
-                    chart_data = df.groupby([x_column, groupby_column]).size().unstack(fill_value=0)
-                    fig = px.bar(chart_data, title=title)
-                else:
-                    chart_data = df[x_column].value_counts().head(20)
-                    fig = px.bar(x=chart_data.index, y=chart_data.values, title=title)
-            else:
+            if y_column:
                 # Aggregated bar chart
-                if groupby_column:
-                    agg_data = df.groupby([x_column, groupby_column])[y_column].mean().unstack(fill_value=0)
-                    fig = px.bar(agg_data, title=title)
-                    chart_data = agg_data.to_dict()
-                else:
-                    agg_data = df.groupby(x_column)[y_column].mean()
-                    fig = px.bar(x=agg_data.index, y=agg_data.values, title=title, 
-                                labels={'x': x_column, 'y': f'Mean {y_column}'})
-                    chart_data = agg_data.to_dict()
+                agg_data = df.groupby(x_column, as_index=False)[y_column].mean()
+                fig = px.bar(agg_data, x=x_column, y=y_column, color=groupby_column, title=title)
+            else:
+                # Count plot
+                fig = px.bar(df, x=x_column, color=groupby_column, title=title)
                     
         elif chart_type == "scatter":
             if not y_column:
-                return {"error": "Scatter plot requires both x_column and y_column"}
+                return {"error": "Scatter plot requires both x_column and y_column."}
             fig = px.scatter(df, x=x_column, y=y_column, color=groupby_column, title=title)
-            chart_data = {"x_mean": df[x_column].mean(), "y_mean": df[y_column].mean()}
             
         elif chart_type == "line":
             if not y_column:
-                return {"error": "Line plot requires both x_column and y_column"}
+                return {"error": "Line plot requires both x_column and y_column."}
             
-            # Sort by x_column for proper line plotting
             df_sorted = df.sort_values(x_column)
-            
-            if groupby_column:
-                fig = px.line(df_sorted, x=x_column, y=y_column, color=groupby_column, title=title)
-            else:
-                # Group by x_column and aggregate y_column
-                line_data = df_sorted.groupby(x_column)[y_column].mean().reset_index()
-                fig = px.line(line_data, x=x_column, y=y_column, title=title)
-                
-            chart_data = {"trend": "line_chart_generated"}
+            fig = px.line(df_sorted, x=x_column, y=y_column, color=groupby_column, title=title)
             
         elif chart_type == "box":
-            if not y_column:
-                fig = px.box(df, x=x_column, title=title)
-            else:
-                fig = px.box(df, x=x_column, y=y_column, title=title)
-            chart_data = {"quartiles": "box_plot_generated"}
+            fig = px.box(df, x=x_column, y=y_column, color=groupby_column, title=title)
             
         else:
-            return {"error": f"Unsupported chart type: {chart_type}. Supported: histogram, bar, scatter, line, box"}
+            return {"error": f"Unsupported chart type: '{chart_type}'. Supported: histogram, bar, scatter, line, box"}
         
-        # Save chart if path provided
-        chart_file = None
-        if save_path or fig:
-            if save_path is None:
-                # Create outputs/charts directory if it doesn't exist
-                outputs_dir = Path("outputs/charts")
-                outputs_dir.mkdir(parents=True, exist_ok=True)
-                save_path = outputs_dir / f"chart_{dataset_name}_{chart_type}_{x_column}.html"
-            
-            chart_file = str(Path(save_path).with_suffix('.html'))
-            fig.write_html(chart_file)
+        # Save chart
+        if save_path is None:
+            outputs_dir = Path("outputs/charts")
+            outputs_dir.mkdir(parents=True, exist_ok=True)
+            safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '_')).rstrip()
+            filename = f"{safe_title}.html".replace(" ", "_")
+            save_path = outputs_dir / filename
+
+        chart_file = str(Path(save_path).resolve())
+        fig.write_html(chart_file)
         
         return {
             "dataset": dataset_name,
@@ -125,7 +121,6 @@ async def create_chart(
                 "groupby_column": groupby_column,
                 "title": title
             },
-            "chart_data_sample": chart_data,
             "chart_file": chart_file,
             "status": "success"
         }

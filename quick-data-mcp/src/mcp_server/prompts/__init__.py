@@ -1,4 +1,11 @@
-"""Prompts package."""
+"""
+Prompts Package for the Generic Data Analytics MCP Server.
+
+This package aggregates all the individual prompt-generating functions from
+the various modules in this directory. These functions typically generate
+dynamic, context-aware text that can be used to guide a user or an AI
+through a specific data analysis workflow.
+"""
 
 from .dataset_first_look_prompt import dataset_first_look
 from .segmentation_workshop_prompt import segmentation_workshop

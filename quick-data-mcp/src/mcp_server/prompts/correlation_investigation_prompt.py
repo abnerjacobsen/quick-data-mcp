@@ -1,96 +1,62 @@
-"""Correlation investigation prompt implementation."""
+"""
+Prompt-generating function for guiding a correlation investigation workflow.
 
-from typing import List, Optional
-from ..models.schemas import DatasetManager, dataset_schemas
+This module provides a function that creates a detailed, context-aware prompt
+to help a user or AI explore correlations within a specified dataset.
+"""
+
+from ..models.schemas import dataset_schemas
 
 
 async def correlation_investigation(dataset_name: str) -> str:
-    """Guide correlation analysis workflow."""
+    """
+    Generates a detailed prompt to guide a correlation analysis workflow.
+
+    This function inspects the dataset's schema to find available numerical
+    columns. It then constructs a markdown-formatted string that explains what
+    correlation analysis is, lists the available columns, and suggests a
+    step-by-step strategy with example tool commands.
+
+    Args:
+        dataset_name (str): The name of the loaded dataset to investigate.
+
+    Returns:
+        str: A markdown-formatted string containing the guided prompt.
+             Returns an error message if the dataset is not found or has
+             insufficient numerical data.
+    """
     try:
         if dataset_name not in dataset_schemas:
-            return f"Dataset '{dataset_name}' not loaded. Use load_dataset() tool first."
+            return f"**Error**: Dataset '{dataset_name}' not found. Please load it first."
         
         schema = dataset_schemas[dataset_name]
-        
-        # Find numerical columns
-        numerical_cols = [name for name, info in schema.columns.items() 
-                         if info.suggested_role == 'numerical']
+        numerical_cols = [name for name, info in schema.columns.items() if info.suggested_role == 'numerical']
         
         if len(numerical_cols) < 2:
-            return f"""**Correlation Analysis: Insufficient Numerical Data**
+            return (f"### Correlation Analysis Not Possible\n\n"
+                    f"The **{dataset_name}** dataset has fewer than two numerical columns, "
+                    f"which are required for correlation analysis.")
 
-Your **{dataset_name}** dataset has {len(numerical_cols)} numerical column(s): {', '.join(numerical_cols) if numerical_cols else 'none'}
-
-**To perform correlation analysis, you need:**
-• At least 2 numerical columns
-• Sufficient data variation (not all identical values)
-
-**Suggestions:**
-1. Check if any categorical columns contain numerical data stored as text
-2. Convert date columns to numerical formats (days since epoch, etc.)
-3. Create numerical features from categorical data (count encodings, etc.)
-4. Load additional datasets with more numerical variables
-
-**Alternative analyses you can perform:**
-• Data quality assessment: `validate_data_quality('{dataset_name}')`
-• Distribution analysis: `analyze_distributions('{dataset_name}', 'column_name')`
-• Segmentation: `segment_by_column('{dataset_name}', 'categorical_column')`
-"""
-        
-        prompt = f"""Let's explore **correlations** in your **{dataset_name}** dataset!
-
-**📊 Available numerical columns** ({len(numerical_cols)}):
-"""
-        
+        prompt = f"### Correlation Investigation for '{dataset_name}'\n\n"
+        prompt += "Let's explore the relationships between numerical variables in your dataset.\n\n"
+        prompt += "**Available Numerical Columns:**\n"
         for col in numerical_cols:
-            col_info = schema.columns[col]
-            prompt += f"• **{col}**: {col_info.unique_values} unique values, {col_info.null_percentage:.1f}% missing\n"
-            prompt += f"  Sample values: {', '.join(map(str, col_info.sample_values))}\n"
-        
-        prompt += f"""
-**🎯 Correlation analysis strategy:**
+            prompt += f"- `{col}`\n"
 
-1. **Start broad**: Find all significant correlations
-   → `find_correlations('{dataset_name}')`
+        prompt += "\n**Suggested Workflow:**\n"
+        prompt += "1. **Overall Correlation Matrix**: Get a complete overview of all correlations.\n"
+        prompt += f"   - `/find_correlations dataset_name:'{dataset_name}'`\n"
+        prompt += "2. **Visualize Strongest Pairs**: Create scatter plots for interesting pairs.\n"
+        prompt += f"   - `/create_chart dataset_name:'{dataset_name}' chart_type:'scatter' "
+        prompt += f"x_column:'{numerical_cols[0]}' y_column:'{numerical_cols[1]}'`\n"
+        prompt += "3. **Deeper Dive**: Analyze distributions of highly correlated variables.\n"
+        prompt += f"   - `/analyze_distributions dataset_name:'{dataset_name}' column_name:'{numerical_cols[0]}'`\n\n"
+        prompt += "**Key Concepts:**\n"
+        prompt += "- **Correlation Coefficient**: A value between -1 and 1. "
+        prompt += "`1` is total positive correlation, `-1` is total negative, and `0` is no correlation.\n"
+        prompt += "- **Correlation vs. Causation**: Remember that a strong correlation does not imply one variable causes the other.\n"
 
-2. **Focus on strong relationships**: Investigate correlations > 0.7
-   → Look for business logic behind statistical relationships
-
-3. **Create visualizations**: Plot the strongest correlations
-   → `create_chart('{dataset_name}', 'scatter', 'column1', 'column2')`
-
-4. **Segment analysis**: Check if correlations hold across different groups
-   → Combine with categorical segmentation
-
-**🔍 What to look for:**
-• **Strong positive correlations** (0.7+): Variables that increase together
-• **Strong negative correlations** (-0.7+): Variables that move oppositely  
-• **Moderate correlations** (0.3-0.7): Interesting but not overwhelming relationships
-• **No correlation** (~0): Independent variables
-
-**⚠️ Correlation insights:**
-• Correlation ≠ Causation (remember this!)
-• High correlation might indicate redundant features
-• Unexpected correlations often reveal interesting patterns
-
-**Quick commands to start:**
-• `find_correlations('{dataset_name}')` - Find all correlations
-• `find_correlations('{dataset_name}', ['{numerical_cols[0]}', '{numerical_cols[1]}'])` - Focus on specific columns"""
-        
-        if len(numerical_cols) >= 2:
-            prompt += f"""
-• `create_chart('{dataset_name}', 'scatter', '{numerical_cols[0]}', '{numerical_cols[1]}')` - Visualize relationship"""
-        
-        prompt += f"""
-
-**💡 Advanced correlation techniques:**
-• Partial correlations (controlling for other variables)
-• Correlation matrices with hierarchical clustering
-• Rolling correlations for time series data
-
-Ready to discover hidden relationships in your data? What correlation analysis would you like to start with?"""
-        
         return prompt
         
     except Exception as e:
-        return f"Error generating correlation investigation prompt: {str(e)}"
+        return f"**Error**: An unexpected error occurred while generating the prompt: {e}"

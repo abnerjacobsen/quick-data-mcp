@@ -1,4 +1,11 @@
-"""Pandas-based data analysis tools."""
+"""
+A module that groups together pandas-based data analysis tools.
+
+This file re-exports various data manipulation and analysis tools that are
+primarily built on the pandas library, providing a single namespace for them.
+This appears to be for organizational purposes, similar to the main `__init__.py`
+in this package.
+"""
 
 from .load_dataset_tool import load_dataset
 from .list_loaded_datasets_tool import list_loaded_datasets
