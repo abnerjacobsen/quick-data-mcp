@@ -20,8 +20,7 @@ async def list_mcp_assets() -> str:
     Returns:
         str: A markdown-formatted string listing all server assets.
     """
-    return \"\"\"
-# 🚀 Quick-Data MCP Server Assets
+    return '''# 🚀 Quick-Data MCP Server Assets
 
 This is a complete list of all available prompts, tools, and resources.
 
@@ -74,4 +73,4 @@ This is a complete list of all available prompts, tools, and resources.
 - `datasets://{dataset_name}/schema`: The schema of a specific dataset.
 - `datasets://{dataset_name}/summary`: Statistical summary of a dataset.
 - `analytics://available_analyses`: List of analyses applicable to the current dataset.
-\"\"\"
+'''

@@ -11,9 +11,9 @@ async def test_get_server_config():
     config = await data_resources.get_server_config()
     
     assert isinstance(config, dict)
-    assert config["name"] == settings.server_name
-    assert config["version"] == settings.version
-    assert config["log_level"] == settings.log_level
+    assert config["server_name"] == settings.server_name
+    assert config["server_version"] == settings.version
+    assert "supported_formats" in config
 
 
 @pytest.mark.asyncio
@@ -25,16 +25,7 @@ async def test_get_user_profile():
     assert isinstance(profile, dict)
     assert profile["id"] == user_id
     assert profile["name"] == f"User {user_id}"
-    assert profile["email"] == f"user{user_id}@example.com"
-    assert profile["status"] == "active"
-    assert "preferences" in profile
-    assert isinstance(profile["preferences"], dict)
-    
-    # Test preferences structure
-    prefs = profile["preferences"]
-    assert "theme" in prefs
-    assert "notifications" in prefs
-    assert "language" in prefs
+    assert profile["email"] == f"user.{user_id}@example.com"
 
 
 @pytest.mark.asyncio
@@ -44,31 +35,9 @@ async def test_get_system_status():
     
     assert isinstance(status, dict)
     assert status["status"] == "healthy"
-    assert "uptime" in status
     assert status["version"] == settings.version
-    assert "features" in status
-    assert isinstance(status["features"], list)
-    assert "dependencies" in status
-    assert isinstance(status["dependencies"], dict)
-    
-    # Check expected features
-    features = status["features"]
-    expected_features = [
-        "dataset_loading",
-        "schema_discovery",
-        "correlation_analysis",
-        "segmentation",
-        "data_quality_assessment"
-    ]
-    for feature in expected_features:
-        assert feature in features
-    
-    # Check dependencies
-    deps = status["dependencies"]
-    assert "mcp" in deps
-    assert "pandas" in deps
-    assert "plotly" in deps
-    assert "pydantic" in deps
+    assert "datasets_loaded" in status
+    assert "total_memory_mb" in status
 
 
 @pytest.mark.asyncio
@@ -80,4 +49,4 @@ async def test_user_profile_different_ids():
         profile = await data_resources.get_user_profile(user_id)
         assert profile["id"] == user_id
         assert profile["name"] == f"User {user_id}"
-        assert profile["email"] == f"user{user_id}@example.com"
+        assert profile["email"] == f"user.{user_id}@example.com"

@@ -51,11 +51,11 @@ async def load_dataset(
             
             # Update result summary
             result["rows"] = len(sampled_df)
-            result["is_sampled"] = True
+            result["sampled"] = True
             result["original_rows"] = len(df)
             result["memory_usage"] = f"{sampled_df.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
         else:
-            result["is_sampled"] = False
+            result["sampled"] = False
 
         return result
         

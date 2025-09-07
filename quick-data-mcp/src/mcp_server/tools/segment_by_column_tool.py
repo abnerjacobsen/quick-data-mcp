@@ -49,17 +49,19 @@ async def segment_by_column(
 
         numerical_cols = df_filtered.select_dtypes(include=np.number).columns.tolist()
         
-        if not numerical_cols:
-            # If no numerical columns, just perform a value count
-            segments = df_filtered[column_name].value_counts().to_frame('count')
-        else:
-            # Define aggregations for numerical columns
-            agg_dict = {col: ['mean', 'sum', 'std'] for col in numerical_cols}
-            agg_dict['count'] = (column_name, 'size') # Add count of items in each group
+        # Always calculate counts first
+        segments = df_filtered.groupby(column_name).size().to_frame('count')
 
-            segments = df_filtered.groupby(column_name).agg(agg_dict)
-            segments.columns = ['_'.join(col).strip() for col in segments.columns.values]
-            segments.rename(columns={f"{column_name}_size": "count"}, inplace=True)
+        if numerical_cols:
+            # If there are numerical columns, calculate their aggregates
+            agg_dict = {col: ['mean', 'sum', 'std'] for col in numerical_cols}
+            numerical_aggs = df_filtered.groupby(column_name).agg(agg_dict)
+
+            # Flatten the multi-level column index
+            numerical_aggs.columns = ['_'.join(col).strip() for col in numerical_aggs.columns.values]
+
+            # Join the numerical aggregates with the counts
+            segments = segments.join(numerical_aggs)
 
         segments = segments.sort_values('count', ascending=False)
         segments['percentage_of_total'] = (segments['count'] / len(df) * 100).round(2)

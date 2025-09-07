@@ -53,6 +53,10 @@ import numpy as np
 import plotly.express as px
 import json
 import sys
+import warnings
+
+# Suppress pandas FutureWarning from read_json
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 try:
     # Load dataset from JSON string

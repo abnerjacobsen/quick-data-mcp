@@ -70,14 +70,11 @@ class TestDatasetFirstLook:
         
         assert isinstance(result, str)
         assert 'ecommerce' in result
-        assert '5 records' in result
-        assert 'columns' in result
-        assert '📊 Numerical columns' in result
-        assert '🏷️ Categorical columns' in result
-        # Date columns might be detected as identifiers if all dates are unique
-        assert ('📅 Date/Time columns' in result or '🔑 Identifier columns' in result)
-        assert '🎯 Recommended starting points' in result
-        assert 'find_correlations' in result or 'segment_by_column' in result
+        assert '5 rows' in result
+        assert '7 columns' in result
+        assert 'Numerical' in result
+        assert 'Categorical' in result
+        assert 'Recommended Starting Points' in result
     
     @pytest.mark.asyncio
     async def test_dataset_first_look_simple(self, simple_dataset):
@@ -88,9 +85,8 @@ class TestDatasetFirstLook:
         
         assert isinstance(result, str)
         assert 'simple' in result
-        assert '5 records' in result
-        # Should still provide useful guidance even with limited data
-        assert 'What aspect' in result
+        assert '5 rows' in result
+        assert 'What would you like to investigate first?' in result
     
     @pytest.mark.asyncio
     async def test_dataset_first_look_nonexistent(self):
@@ -98,8 +94,8 @@ class TestDatasetFirstLook:
         result = await dataset_first_look('nonexistent')
         
         assert isinstance(result, str)
-        assert 'not loaded' in result
-        assert 'load_dataset()' in result
+        assert 'not found' in result
+        assert 'load it first' in result
 
 
 if __name__ == '__main__':

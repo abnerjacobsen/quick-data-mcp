@@ -192,19 +192,19 @@ async def get_current_dataset() -> Dict:
     return await resources.get_current_dataset()
 
 @mcp.resource("analytics://available_analyses")
-async def get_available_analyses(dataset_name: Optional[str] = None) -> Dict:
+async def get_available_analyses() -> Dict:
     """Lists analysis types applicable to the current or specified dataset."""
-    return await resources.get_available_analyses(dataset_name)
+    return await resources.get_available_analyses()
 
 @mcp.resource("analytics://column_types")
-async def get_column_types(dataset_name: Optional[str] = None) -> Dict:
+async def get_column_types() -> Dict:
     """Gets the inferred role for each column in a dataset."""
-    return await resources.get_column_types(dataset_name)
+    return await resources.get_column_types()
 
 @mcp.resource("analytics://suggested_insights")
-async def get_analysis_suggestions(dataset_name: Optional[str] = None) -> Dict:
+async def get_analysis_suggestions() -> Dict:
     """Provides a list of suggested next analysis steps for a dataset."""
-    return await resources.get_analysis_suggestions(dataset_name)
+    return await resources.get_analysis_suggestions()
 
 @mcp.resource("analytics://memory_usage")
 async def get_memory_usage() -> Dict:
@@ -313,19 +313,19 @@ async def resource_analytics_current_dataset() -> Dict:
     return await resources.get_current_dataset()
 
 @mcp.tool()
-async def resource_analytics_available_analyses(dataset_name: Optional[str] = None) -> Dict:
+async def resource_analytics_available_analyses() -> Dict:
     """Tool mirror of the `analytics://available_analyses` resource."""
-    return await resources.get_available_analyses(dataset_name)
+    return await resources.get_available_analyses()
 
 @mcp.tool()
-async def resource_analytics_column_types(dataset_name: Optional[str] = None) -> Dict:
+async def resource_analytics_column_types() -> Dict:
     """Tool mirror of the `analytics://column_types` resource."""
-    return await resources.get_column_types(dataset_name)
+    return await resources.get_column_types()
 
 @mcp.tool()
-async def resource_analytics_suggested_insights(dataset_name: Optional[str] = None) -> Dict:
+async def resource_analytics_suggested_insights() -> Dict:
     """Tool mirror of the `analytics://suggested_insights` resource."""
-    return await resources.get_analysis_suggestions(dataset_name)
+    return await resources.get_analysis_suggestions()
 
 @mcp.tool()
 async def resource_analytics_memory_usage() -> Dict:

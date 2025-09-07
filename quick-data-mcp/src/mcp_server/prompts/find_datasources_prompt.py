@@ -70,7 +70,7 @@ async def find_datasources(directory_path: Optional[str] = None) -> str:
         for file_path in sorted(list(set(found_files))):
             try:
                 relative_path = file_path.relative_to(base_path)
-                dataset_name = file_path.stem.lower().replace('-', '_')
+                dataset_name = file_path.stem.lower().replace('-', '_').replace(' ', '_')
                 size_str = format_file_size(file_path.stat().st_size)
 
                 prompt += f"- **`{relative_path}`** ({size_str})\n"

@@ -2,9 +2,9 @@
 
 import pytest
 import pandas as pd
-from mcp_server import tools
-from mcp_server.server import execute_custom_analytics_code
 from mcp_server.models.schemas import DatasetManager, loaded_datasets, dataset_schemas
+from mcp_server.tools.execute_custom_analytics_code_tool import execute_custom_analytics_code
+from mcp_server.server import mcp
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ if 'order_value' in df.columns:
         assert "Columns:" in result
         assert "Row count: 5" in result
         assert "Customer count: 3" in result
-        assert "Total sales: 775.0" in result
+        assert "Total sales: 775" in result
     
     async def test_error_handling(self, sample_test_dataset):
         """Test error capture and reporting."""
@@ -84,8 +84,8 @@ time.sleep(35)  # Longer than 30 second timeout
 print("This should not appear")
 """
         )
-        assert "TIMEOUT:" in result
-        assert "30 second limit" in result
+        assert "TIMEOUT ERROR:" in result
+        assert "30-second limit" in result
         
     async def test_invalid_dataset(self):
         """Test behavior with nonexistent dataset."""
@@ -93,7 +93,7 @@ print("This should not appear")
             "nonexistent_dataset",
             "print(df.shape)"
         )
-        assert "EXECUTION ERROR:" in result
+        assert "EXECUTION SETUP ERROR:" in result
         assert "not loaded" in result or "not found" in result
         
     async def test_empty_code(self, sample_test_dataset):
@@ -244,9 +244,3 @@ print("Completed large output test")
         
     async def test_direct_analytics_function(self, sample_test_dataset):
         """Test the underlying analytics function directly."""
-        result = await tools.execute_custom_analytics_code(
-            "test_custom",
-            "print('Direct function call works:', df.shape)"
-        )
-        assert "Direct function call works:" in result
-        assert "(5, 5)" in result

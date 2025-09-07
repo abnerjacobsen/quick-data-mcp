@@ -77,7 +77,7 @@ async def find_correlations(
         
         return {
             "dataset": dataset_name,
-            "correlation_matrix": {k: v.to_dict() for k, v in corr_matrix.to_dict().items()},
+            "correlation_matrix": corr_matrix.to_dict(),
             "strong_correlations": strong_correlations,
             "columns_analyzed": existing_columns,
             "threshold": threshold

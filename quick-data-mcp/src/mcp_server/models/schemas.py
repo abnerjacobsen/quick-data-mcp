@@ -144,15 +144,17 @@ class DatasetManager:
     """
     
     @staticmethod
-    def load_dataset(file_path: str, dataset_name: str) -> dict:
+    def load_dataset(file_path_or_df: Union[str, pd.DataFrame], dataset_name: str) -> dict:
         """
-        Loads a dataset from a file into memory and discovers its schema.
+        Loads a dataset from a file or DataFrame into memory and discovers its schema.
 
-        Supports JSON and CSV file formats. The loaded DataFrame and its discovered
-        schema are stored in global dictionaries under the given dataset name.
+        If a file path (str) is provided, it supports JSON and CSV formats. If a
+        pandas DataFrame is provided, it is used directly. The loaded DataFrame and
+        its discovered schema are stored in global dictionaries.
 
         Args:
-            file_path (str): The path to the data file (.json or .csv).
+            file_path_or_df (Union[str, pd.DataFrame]): The path to the data file
+                                                     or the DataFrame itself.
             dataset_name (str): The name to assign to the loaded dataset.
 
         Returns:
@@ -160,19 +162,23 @@ class DatasetManager:
                   and memory usage.
 
         Raises:
-            ValueError: If the file format is not supported.
+            ValueError: If the file format is not supported or the input type is invalid.
         """
-        
-        # Determine format from file extension
-        if file_path.endswith('.json'):
-            df = pd.read_json(file_path)
-            file_format = 'json'
-        elif file_path.endswith('.csv'):
-            df = pd.read_csv(file_path)
-            file_format = 'csv'
+        file_format = 'dataframe' # Default if a df is passed
+        if isinstance(file_path_or_df, str):
+            if file_path_or_df.endswith('.json'):
+                df = pd.read_json(file_path_or_df)
+                file_format = 'json'
+            elif file_path_or_df.endswith('.csv'):
+                df = pd.read_csv(file_path_or_df)
+                file_format = 'csv'
+            else:
+                raise ValueError(f"Unsupported file format: {file_path_or_df}")
+        elif isinstance(file_path_or_df, pd.DataFrame):
+            df = file_path_or_df
         else:
-            raise ValueError(f"Unsupported file format: {file_path}")
-        
+            raise ValueError("Input must be a file path (str) or a pandas DataFrame")
+
         # Store in global memory
         loaded_datasets[dataset_name] = df
         
