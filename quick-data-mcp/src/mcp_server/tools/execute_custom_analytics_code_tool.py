@@ -22,12 +22,15 @@ async def execute_custom_analytics_code(dataset_name: str, python_code: str) -> 
     
     try:
         # Step 1: Get dataset
-        df = DatasetManager.get_dataset(dataset_name)
+        # df = DatasetManager.get_dataset(dataset_name)
+        dataset_path = DatasetManager.get_dataset_path(dataset_name)
         
-        # Step 2: Serialize dataset
-        dataset_json = df.to_json(orient='records')
+        # # Step 2: Serialize dataset
+        # dataset_json = df.to_json(orient='records')
         
-        # Step 3: Create execution template
+        # # Step 3: Create execution template
+
+        # Step 2: Create execution template
         # Need to properly indent user code
         import textwrap
         indented_user_code = textwrap.indent(python_code, '    ')
@@ -39,9 +42,15 @@ import plotly.express as px
 import json
 
 try:
-    # Load dataset
-    dataset_data = {dataset_json}
-    df = pd.DataFrame(dataset_data)
+    # Load dataset from path
+    file_path = r'{dataset_path}'
+
+    if file_path.endswith('.json'):
+        df = pd.read_json(file_path)
+    elif file_path.endswith('.csv'):
+        df = pd.read_csv(file_path)
+    else:
+        raise ValueError(f"Unsupported file format: {{file_path}}")
     
     # Execute user code
 {indented_user_code}

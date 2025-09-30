@@ -81,6 +81,7 @@ class DatasetSchema(BaseModel):
 # Global in-memory storage for datasets
 loaded_datasets: Dict[str, pd.DataFrame] = {}
 dataset_schemas: Dict[str, DatasetSchema] = {}
+dataset_paths: Dict[str, str] = {}
 
 
 class DatasetManager:
@@ -102,6 +103,7 @@ class DatasetManager:
         
         # Store in global memory
         loaded_datasets[dataset_name] = df
+        dataset_paths[dataset_name] = file_path
         
         # Discover and cache schema
         schema = DatasetSchema.from_dataframe(df, dataset_name)
@@ -122,7 +124,14 @@ class DatasetManager:
         if dataset_name not in loaded_datasets:
             raise ValueError(f"Dataset '{dataset_name}' not loaded. Use load_dataset() first.")
         return loaded_datasets[dataset_name]
-    
+
+    @staticmethod
+    def get_dataset_path(dataset_name: str) -> str:
+        """Retrieve dataset file path from memory."""
+        if dataset_name not in dataset_paths:
+            raise ValueError(f"Dataset path for '{dataset_name}' not found.")
+        return dataset_paths[dataset_name]
+
     @staticmethod
     def list_datasets() -> List[str]:
         """Get names of all loaded datasets."""
